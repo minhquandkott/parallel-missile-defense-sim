@@ -1,0 +1,30 @@
+
+# Binary files
+sim
+
+# Object files
+*.o
+
+# Editor-specific
+.vscode/
+.idea/
+CMakeList.txt
+
+# System files
+.DS_Store
+
+# Logs
+*.log
+*.out
+
+# CMake build files (optional local use only)
+CMakeLists.txt
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Build files
+build/
+
+
