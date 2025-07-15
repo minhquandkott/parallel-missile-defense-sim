@@ -7,4 +7,6 @@
 void update_position(Missile *m, float dt) {
     m->x += m->vx * dt;
     m->y += m->vy * dt;
+    m->z += m->vz * dt;
 }
+

@@ -8,8 +8,8 @@
 
 typedef struct {
     int id;
-    float x, y;
-    float vx, vy;
+    float x, y, z;
+    float vx, vy, vz;
     int active;
 } Missile;
 

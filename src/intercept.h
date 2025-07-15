@@ -8,7 +8,9 @@
 
 #include "missile.h"
 
-void process_interception(Missile *missiles, int count, int rank, float radar_y, int *intercept_count);
+void process_interception(Missile *missiles, int count, int rank,
+                          float xr, float yr, float zr, int *intercept_count);
 
 #endif
+
 
