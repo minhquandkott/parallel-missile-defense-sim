@@ -5,11 +5,17 @@
 #include <math.h>
 #include "radar.h"
 
+#include <stdio.h>
+
 void get_radar_coordinates(int rank, int size, float r,
                            float *radar_x, float *radar_y, float *radar_z,
                            float *theta_min, float *theta_max,
                            float *phi_min, float *phi_max) {
-    int sqrt_P = (int)sqrt(size);
+    int sqrt_P = (int)(sqrt(size) + 0.5);  // Làm tròn
+    if (sqrt_P * sqrt_P != size && rank == 0) {
+        printf("⚠️ Warning: Number of processes should be a perfect square for balanced zone splitting.\n");
+    }
+
     int theta_idx = rank / sqrt_P;
     int phi_idx = rank % sqrt_P;
 

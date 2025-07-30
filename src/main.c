@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
             // Spawn random outside sphere
             float theta = ((float)rand() / RAND_MAX) * M_PI;
             float phi = ((float)rand() / RAND_MAX) * 2 * M_PI;
-            float r = RADIUS + 50.0; // start outside
+            float r = RADIUS + 10.0; // start outside
 
             missiles[i].x = r * sin(theta) * cos(phi);
             missiles[i].y = r * sin(theta) * sin(phi);
@@ -63,9 +63,9 @@ int main(int argc, char **argv) {
             if (missiles[i].active &&
                 is_missile_in_zone(missiles[i].x, missiles[i].y, missiles[i].z,
                                    theta_min, theta_max, phi_min, phi_max)) {
-                // if (missiles[i].active) {
                 local[local_count++] = missiles[i];
-            }
+                missiles[i].active = 0;  // <-- Mark global copy inactive
+                                   }
         }
 
         process_interception(local, local_count, rank, radar_x, radar_y, radar_z, &intercept_count);
