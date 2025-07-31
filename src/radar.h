@@ -1,8 +1,7 @@
 //
 // Created by Huynh Tam Minh Quan on 20/06/2025.
 //
-
-// radar.h
+// ===== radar.h =====
 #ifndef RADAR_H
 #define RADAR_H
 
