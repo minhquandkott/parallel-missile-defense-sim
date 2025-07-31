@@ -1,20 +1,16 @@
 //
 // Created by Huynh Tam Minh Quan on 20/06/2025.
 //
-// radar.c
+// ===== radar.c =====
 #include <math.h>
+#define _USE_MATH_DEFINES
 #include "radar.h"
-
-#include <stdio.h>
 
 void get_radar_coordinates(int rank, int size, float r,
                            float *radar_x, float *radar_y, float *radar_z,
                            float *theta_min, float *theta_max,
                            float *phi_min, float *phi_max) {
-    int sqrt_P = (int)(sqrt(size) + 0.5);  // Làm tròn
-    if (sqrt_P * sqrt_P != size && rank == 0) {
-        printf("⚠️ Warning: Number of processes should be a perfect square for balanced zone splitting.\n");
-    }
+    int sqrt_P = (int)(sqrt(size) + 0.5);
 
     int theta_idx = rank / sqrt_P;
     int phi_idx = rank % sqrt_P;

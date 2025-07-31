@@ -1,6 +1,6 @@
+// ===== main.c =====
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <mpi.h>
 #include "missile.h"
 #include "radar.h"
@@ -15,52 +15,40 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    //Set default values
+    FILE *logfile = fopen("intercept_log.txt", "a");
+    if (!logfile) {
+        if (rank == 0) fprintf(stderr, "Cannot open log file!\n");
+        MPI_Abort(MPI_COMM_WORLD, 1);
+    }
+
     int num_missiles = 200;
     int steps = 300;
-
-    //Parse command-line arguments (argc/argv)
     if (argc >= 2) num_missiles = atoi(argv[1]);
     if (argc >= 3) steps = atoi(argv[2]);
+
     if (rank == 0) {
-        printf("Launching simulation: %d missiles, %d steps, %d processes\n", num_missiles, steps, size);
+        fprintf(logfile, "Launching simulation: %d missiles, %d steps, %d processes\n", num_missiles, steps, size);
+        fflush(logfile);
     }
 
-    //Allocate missile array dynamically
     Missile *missiles = malloc(sizeof(Missile) * num_missiles);
-
-    //Initialize missiles (on rank 0)
-    if (rank == 0) {
-        for (int i = 0; i < num_missiles; i++) {
-            missiles[i].id = i;
-
-            float theta = ((float)rand() / RAND_MAX) * M_PI;
-            float phi = ((float)rand() / RAND_MAX) * 2 * M_PI;
-            float r = RADIUS + 10.0;
-
-            missiles[i].x = r * sin(theta) * cos(phi);
-            missiles[i].y = r * sin(theta) * sin(phi);
-            missiles[i].z = r * cos(theta);
-
-            float norm = sqrt(missiles[i].x * missiles[i].x +
-                              missiles[i].y * missiles[i].y +
-                              missiles[i].z * missiles[i].z);
-
-            missiles[i].vx = -missiles[i].x / norm;
-            missiles[i].vy = -missiles[i].y / norm;
-            missiles[i].vz = -missiles[i].z / norm;
-
-            missiles[i].active = 1;
-        }
+    if (!missiles) {
+        fprintf(stderr, "Process %d: Failed to allocate missiles\n", rank);
+        MPI_Abort(MPI_COMM_WORLD, 1);
     }
 
-    //Broadcast missiles to all processes
+    if (rank == 0) {
+        initialize_missiles(missiles, num_missiles, RADIUS);
+    }
+
     MPI_Bcast(missiles, sizeof(Missile) * num_missiles, MPI_BYTE, 0, MPI_COMM_WORLD);
 
     float radar_x, radar_y, radar_z;
     float theta_min, theta_max, phi_min, phi_max;
-    get_radar_coordinates(rank, size, RADIUS, &radar_x, &radar_y, &radar_z,
-                          &theta_min, &theta_max, &phi_min, &phi_max);
+    get_radar_coordinates(rank, size, RADIUS,
+                          &radar_x, &radar_y, &radar_z,
+                          &theta_min, &theta_max,
+                          &phi_min, &phi_max);
 
     int intercept_count = 0;
     double start_time = MPI_Wtime();
@@ -79,40 +67,36 @@ int main(int argc, char **argv) {
                 is_missile_in_zone(missiles[i].x, missiles[i].y, missiles[i].z,
                                    theta_min, theta_max, phi_min, phi_max)) {
                 local[local_count++] = missiles[i];
-                missiles[i].active = 0;  // lock it from other zones
+                missiles[i].active = 0;
             }
         }
 
-        process_interception(local, local_count, rank, radar_x, radar_y, radar_z, &intercept_count);
+        process_interception(local, local_count, rank, radar_x, radar_y, radar_z, &intercept_count, logfile);
         free(local);
 
-        MPI_Barrier(MPI_COMM_WORLD); // sync all ranks
+        MPI_Barrier(MPI_COMM_WORLD);
     }
 
     double end_time = MPI_Wtime();
     if (rank == 0) {
-        printf("Total runtime: %.2f seconds\n", end_time - start_time);
+        fprintf(logfile, "Total runtime: %.2f seconds\n", end_time - start_time);
+        fflush(logfile);
     }
 
-    int *all_counts = NULL;
-    if (rank == 0) {
-        all_counts = malloc(sizeof(int) * size);
-    }
-
+    int *all_counts = (rank == 0) ? malloc(sizeof(int) * size) : NULL;
     MPI_Gather(&intercept_count, 1, MPI_INT, all_counts, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
     if (rank == 0) {
-        printf("\n--- Interception Summary ---\n");
-        FILE *f = fopen("../report/intercept_counts.csv", "w");
+        fprintf(logfile, "\n--- Interception Summary ---\n");
         for (int i = 0; i < size; i++) {
-            printf("Zone %d intercepted %d missiles\n", i, all_counts[i]);
-            fprintf(f, "%d,%d\n", i, all_counts[i]);
+            fprintf(logfile, "Zone %d intercepted %d missiles\n", i, all_counts[i]);
         }
-        fclose(f);
+        fflush(logfile);
         free(all_counts);
     }
 
     free(missiles);
+    fclose(logfile);
     MPI_Finalize();
     return 0;
 }
